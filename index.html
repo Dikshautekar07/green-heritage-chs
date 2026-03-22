@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Green Heritage CHS | Complaint Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero-card">
+      <div>
+        <p class="eyebrow">Green Heritage CHS, Kharghar</p>
+        <h1>Complaint Tracking and Daily Work Checklist</h1>
+        <p class="hero-copy">
+          A simple society operations portal for residents and committee members to manage complaints,
+          monitor work progress, and review daily maintenance tasks.
+        </p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-pill">
+          <span>7</span>
+          <p>Complaint categories</p>
+        </div>
+        <div class="stat-pill">
+          <span>3</span>
+          <p>Status stages</p>
+        </div>
+      </div>
+    </header>
+
+    <main id="app"></main>
+  </div>
+
+  <template id="auth-template">
+    <section class="glass-card auth-layout fade-up">
+      <div class="panel-intro">
+        <p class="section-tag">Resident Access</p>
+        <h2>Welcome to the society service desk</h2>
+        <p>
+          Submit maintenance complaints, track updates, and give feedback after resolution.
+        </p>
+        <div class="highlight-list">
+          <div>
+            <strong>Resident Dashboard</strong>
+            <span>Raise and follow your complaints with flat details.</span>
+          </div>
+          <div>
+            <strong>Admin Dashboard</strong>
+            <span>Update statuses, manage daily checklist items, and read feedback.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-box">
+        <div class="tab-row">
+          <button class="tab-button active" data-auth-tab="login" type="button">Login</button>
+          <button class="tab-button" data-auth-tab="signup" type="button">Sign Up</button>
+        </div>
+
+        <form id="login-form" class="form-card">
+          <label>
+            Email
+            <input type="email" name="email" placeholder="resident@example.com" required>
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Enter password" required>
+          </label>
+          <button class="primary-button" type="submit">Login</button>
+          <p class="helper-text">Demo admin login: <code>admin@greenheritage.in</code> / <code>admin123</code></p>
+        </form>
+
+        <form id="signup-form" class="form-card hidden">
+          <label>
+            Full Name
+            <input type="text" name="name" placeholder="Resident name" required>
+          </label>
+          <label>
+            Flat Number
+            <input type="text" name="flatNumber" placeholder="A-302" required>
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" placeholder="resident@example.com" required>
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" placeholder="Create password" minlength="4" required>
+          </label>
+          <button class="primary-button" type="submit">Create Account</button>
+        </form>
+
+        <p id="auth-message" class="message-box" aria-live="polite"></p>
+      </div>
+    </section>
+  </template>
+
+  <template id="user-template">
+    <section class="dashboard fade-up">
+      <div class="dashboard-header">
+        <div>
+          <p class="section-tag">Resident Dashboard</p>
+          <h2 id="user-greeting"></h2>
+          <p class="subtle-text">Track complaints, review progress, and share completion feedback.</p>
+        </div>
+        <button class="ghost-button" id="logout-button" type="button">Logout</button>
+      </div>
+
+      <div class="dashboard-grid">
+        <section class="glass-card">
+          <div class="card-head">
+            <h3>Submit Complaint</h3>
+            <span class="badge">Quick Form</span>
+          </div>
+          <form id="complaint-form" class="form-card">
+            <label>
+              Flat Number
+              <input type="text" name="flatNumber" required>
+            </label>
+            <label>
+              Category
+              <select name="category" required></select>
+            </label>
+            <label>
+              Complaint Details
+              <textarea name="description" rows="4" placeholder="Describe the issue clearly" required></textarea>
+            </label>
+            <button class="primary-button" type="submit">Submit Complaint</button>
+          </form>
+          <p id="complaint-message" class="message-box" aria-live="polite"></p>
+        </section>
+
+        <section class="glass-card">
+          <div class="card-head">
+            <h3>Daily Checklist Snapshot</h3>
+            <span class="badge badge-soft">Shared View</span>
+          </div>
+          <div id="resident-checklist" class="stack-list"></div>
+        </section>
+      </div>
+
+      <section class="glass-card">
+        <div class="card-head">
+          <h3>My Complaints</h3>
+          <span class="badge">Live Status</span>
+        </div>
+        <div id="user-complaints" class="card-list"></div>
+      </section>
+    </section>
+  </template>
+
+  <template id="admin-template">
+    <section class="dashboard fade-up">
+      <div class="dashboard-header">
+        <div>
+          <p class="section-tag">Admin Dashboard</p>
+          <h2>Society operations console</h2>
+          <p class="subtle-text">Manage complaints, maintain checklists, and review resident feedback.</p>
+        </div>
+        <button class="ghost-button" id="admin-logout-button" type="button">Logout</button>
+      </div>
+
+      <div class="metrics-row" id="admin-metrics"></div>
+
+      <div class="dashboard-grid">
+        <section class="glass-card">
+          <div class="card-head">
+            <h3>All Complaints</h3>
+            <span class="badge">Admin Actions</span>
+          </div>
+          <div id="admin-complaints" class="card-list"></div>
+        </section>
+
+        <section class="glass-card">
+          <div class="card-head">
+            <h3>Daily Checklist</h3>
+            <span class="badge badge-soft">Editable</span>
+          </div>
+          <form id="checklist-form" class="inline-form">
+            <input type="text" name="title" placeholder="Add checklist item" required>
+            <button class="primary-button" type="submit">Add</button>
+          </form>
+          <div id="admin-checklist" class="stack-list"></div>
+        </section>
+      </div>
+
+      <section class="glass-card">
+        <div class="card-head">
+          <h3>Resident Feedback</h3>
+          <span class="badge">Post Completion</span>
+        </div>
+        <div id="feedback-list" class="card-list"></div>
+      </section>
+    </section>
+  </template>
+
+  <script src="./script.js"></script>
+</body>
+</html>
