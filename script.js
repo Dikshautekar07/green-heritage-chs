@@ -7,7 +7,8 @@ const complaintCategories = [
   "Club House",
   "Civil Work",
   "Account",
-  "Internal Leakage"
+  "Internal Leakage",
+  "Other"
 ];
 
 const complaintStatuses = ["Pending", "In Progress", "Completed"];
