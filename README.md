@@ -37,6 +37,10 @@ GitHub Pages can only host static files and cannot run the backend authenticatio
 
 This repo now includes `render.yaml` for Render deployment with a persistent disk mounted at `/opt/render/project/src/data`.
 
+One-click Render setup:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Dikshautekar07/green-heritage-chs)
+
 After connecting the GitHub repo to Render, deploy it as a web service and use:
 
 - Start command: `node server.js`
