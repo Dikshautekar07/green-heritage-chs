@@ -41,7 +41,8 @@ const initialState = {
     { id: "task-1", title: "Check water tank motor operation", completed: true },
     { id: "task-2", title: "Inspect lift lobby cleanliness", completed: false },
     { id: "task-3", title: "Verify clubhouse lighting", completed: false }
-  ]
+  ],
+  checklistHistory: []
 };
 
 function cloneState(value) {
@@ -68,6 +69,11 @@ function loadState() {
 }
 
 let state = loadState();
+
+if (!Array.isArray(state.checklistHistory)) {
+  state.checklistHistory = [];
+  saveState();
+}
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -104,6 +110,288 @@ function formatDate(value) {
     dateStyle: "medium",
     timeStyle: "short"
   });
+}
+
+function getComplaintSummary() {
+  const summary = {
+    total: state.complaints.length,
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    categories: {}
+  };
+
+  complaintCategories.forEach((category) => {
+    summary.categories[category] = 0;
+  });
+
+  state.complaints.forEach((complaint) => {
+    if (complaint.status === "Pending") summary.pending += 1;
+    if (complaint.status === "In Progress") summary.inProgress += 1;
+    if (complaint.status === "Completed") summary.completed += 1;
+    summary.categories[complaint.category] = (summary.categories[complaint.category] || 0) + 1;
+  });
+
+  return summary;
+}
+
+function getCompletedChecklistReportRows() {
+  const activeCompleted = state.checklist
+    .filter((item) => item.completed)
+    .map((item) => ({
+      title: item.title,
+      completedAt: item.completedAt || "",
+      source: "Active Checklist"
+    }));
+
+  const archivedCompleted = state.checklistHistory.map((item) => ({
+    title: item.title,
+    completedAt: item.completedAt || item.removedAt || "",
+    source: "Archived After Removal"
+  }));
+
+  return [...activeCompleted, ...archivedCompleted].sort((a, b) => {
+    const left = new Date(b.completedAt || 0);
+    const right = new Date(a.completedAt || 0);
+    return left - right;
+  });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function buildPrintableReport() {
+  const summary = getComplaintSummary();
+  const generatedAt = formatDate(new Date().toISOString());
+  const completedChecklistRows = getCompletedChecklistReportRows();
+
+  const complaintRows = state.complaints.length
+    ? state.complaints
+        .map(
+          (complaint) => `
+            <tr>
+              <td>${escapeHtml(complaint.residentName)}</td>
+              <td>${escapeHtml(complaint.flatNumber)}</td>
+              <td>${escapeHtml(complaint.category)}</td>
+              <td>${escapeHtml(complaint.status)}</td>
+              <td>${escapeHtml(formatDate(complaint.createdAt))}</td>
+            </tr>
+          `
+        )
+        .join("")
+    : `<tr><td colspan="5">No complaints registered yet.</td></tr>`;
+
+  const categoryRows = complaintCategories
+    .map(
+      (category) => `
+        <tr>
+          <td>${escapeHtml(category)}</td>
+          <td>${summary.categories[category]}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const checklistRows = completedChecklistRows.length
+    ? completedChecklistRows
+        .map(
+          (item) => `
+            <tr>
+              <td>${escapeHtml(item.title)}</td>
+              <td>${escapeHtml(item.completedAt ? formatDate(item.completedAt) : "-")}</td>
+              <td>${escapeHtml(item.source)}</td>
+            </tr>
+          `
+        )
+        .join("")
+    : `<tr><td colspan="3">No completed checklist items recorded yet.</td></tr>`;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Green Heritage CHS Report</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          color: #173024;
+          margin: 32px;
+        }
+        h1, h2 {
+          margin: 0 0 12px;
+        }
+        p {
+          margin: 0 0 10px;
+          line-height: 1.5;
+        }
+        .summary-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(120px, 1fr));
+          gap: 12px;
+          margin: 24px 0;
+        }
+        .summary-card {
+          border: 1px solid #c7d9cc;
+          border-radius: 14px;
+          padding: 16px;
+          background: #f5faf6;
+        }
+        .summary-card strong {
+          display: block;
+          font-size: 28px;
+          margin-bottom: 6px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 16px;
+        }
+        th, td {
+          border: 1px solid #d8e6db;
+          padding: 10px;
+          text-align: left;
+          font-size: 14px;
+        }
+        th {
+          background: #eef6f0;
+        }
+        .section {
+          margin-top: 28px;
+        }
+        @media print {
+          body {
+            margin: 14mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Green Heritage CHS, Kharghar</h1>
+      <p>Complaint Status Report</p>
+      <p>Generated on: ${escapeHtml(generatedAt)}</p>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <strong>${summary.total}</strong>
+          <span>Total Complaints</span>
+        </div>
+        <div class="summary-card">
+          <strong>${summary.pending}</strong>
+          <span>Pending</span>
+        </div>
+        <div class="summary-card">
+          <strong>${summary.inProgress}</strong>
+          <span>In Progress</span>
+        </div>
+        <div class="summary-card">
+          <strong>${summary.completed}</strong>
+          <span>Completed</span>
+        </div>
+      </div>
+
+      <section class="section">
+        <h2>Category Summary</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Registered Complaints</th>
+            </tr>
+          </thead>
+          <tbody>${categoryRows}</tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>Complaint Register</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Resident</th>
+              <th>Flat</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Registered On</th>
+            </tr>
+          </thead>
+          <tbody>${complaintRows}</tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>Completed Checklist History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Checklist Item</th>
+              <th>Completed On</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>${checklistRows}</tbody>
+        </table>
+      </section>
+    </body>
+    </html>
+  `;
+}
+
+function downloadCsvReport() {
+  const completedChecklistRows = getCompletedChecklistReportRows();
+  const rows = [
+    ["Resident", "Flat Number", "Category", "Status", "Registered On", "Feedback"],
+    ...state.complaints.map((complaint) => [
+      complaint.residentName,
+      complaint.flatNumber,
+      complaint.category,
+      complaint.status,
+      formatDate(complaint.createdAt),
+      complaint.feedback || ""
+    ]),
+    [],
+    ["Completed Checklist History"],
+    ["Checklist Item", "Completed On", "Source"],
+    ...completedChecklistRows.map((item) => [
+      item.title,
+      item.completedAt ? formatDate(item.completedAt) : "",
+      item.source
+    ])
+  ];
+
+  const csv = rows
+    .map((row) =>
+      row
+        .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+        .join(",")
+    )
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "green-heritage-complaints-report.csv";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function openPrintableReport() {
+  const reportWindow = window.open("", "_blank", "width=1100,height=800");
+  if (!reportWindow) return;
+
+  reportWindow.document.open();
+  reportWindow.document.write(buildPrintableReport());
+  reportWindow.document.close();
+  reportWindow.focus();
+  window.setTimeout(() => {
+    reportWindow.print();
+  }, 350);
 }
 
 function render() {
@@ -476,6 +764,8 @@ function renderFeedback() {
 
 function bindAdminEvents() {
   document.getElementById("admin-logout-button").addEventListener("click", logout);
+  document.getElementById("generate-report-button").addEventListener("click", openPrintableReport);
+  document.getElementById("download-csv-button").addEventListener("click", downloadCsvReport);
 
   document.querySelectorAll("[data-update-status]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -500,7 +790,8 @@ function bindAdminEvents() {
     state.checklist.unshift({
       id: uid("task"),
       title,
-      completed: false
+      completed: false,
+      completedAt: ""
     });
     saveState();
     render();
@@ -511,6 +802,7 @@ function bindAdminEvents() {
       const task = state.checklist.find((item) => item.id === checkbox.dataset.toggleCheck);
       if (!task) return;
       task.completed = checkbox.checked;
+      task.completedAt = checkbox.checked ? task.completedAt || new Date().toISOString() : "";
       saveState();
       render();
     });
@@ -518,6 +810,18 @@ function bindAdminEvents() {
 
   document.querySelectorAll("[data-remove-task]").forEach((button) => {
     button.addEventListener("click", () => {
+      const task = state.checklist.find((item) => item.id === button.dataset.removeTask);
+      if (!task) return;
+
+      if (task.completed) {
+        state.checklistHistory.unshift({
+          id: uid("history"),
+          title: task.title,
+          completedAt: task.completedAt || new Date().toISOString(),
+          removedAt: new Date().toISOString()
+        });
+      }
+
       state.checklist = state.checklist.filter((item) => item.id !== button.dataset.removeTask);
       saveState();
       render();
