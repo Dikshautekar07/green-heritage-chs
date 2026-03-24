@@ -1,0 +1,13 @@
+{
+  "name": "green-heritage-chs-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Green Heritage CHS complaint tracking and checklist portal",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

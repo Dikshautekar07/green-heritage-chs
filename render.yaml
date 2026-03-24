@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: green-heritage-chs
+    env: node
+    plan: starter
+    autoDeploy: true
+    buildCommand: ""
+    startCommand: node server.js
+    disk:
+      name: green-heritage-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
